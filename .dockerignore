@@ -9,3 +9,6 @@ __pycache__/
 venv/
 uploads/
 outputs/
+facefusion/.assets/
+seed-vc/checkpoints/
+.pytest_cache/

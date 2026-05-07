@@ -1,77 +1,33 @@
-# FaceFusion Upload App
+# FaceFusion + Seed-VC Upload App
 
-Small local Flask app for one job: upload a source face image and a target video, convert the target to `mp4` when needed, run FaceFusion in headless mode, and download the generated `output.mp4`. The interface shows the current processing step while the job runs.
+Local Flask app for:
+
+- face swapping with FaceFusion
+- optional voice conversion with Seed-VC
+- MP4 download of the final processed video
+
+The app accepts:
+
+- a required source face image
+- a required target video
+- an optional reference voice clip
+
+If a voice clip is uploaded, the app extracts the target video's speech, runs Seed-VC against the reference clip, and muxes the converted audio back into the FaceFusion result.
 
 ## Requirements
 
-- Git
-- Conda
-- FFmpeg
-- Local FaceFusion installation
+- Python 3.11
+- FFmpeg and FFprobe
+- internet access on first run so FaceFusion and Seed-VC can download model files
 
-## Full Installation
+## Docker
 
-### 1. Install Git and Conda
+Docker is the easiest way to run the full stack because the container already separates the app, FaceFusion, and Seed-VC into dedicated Python 3.11 virtualenvs.
 
-Install these tools first:
-
-- Git
-- Miniconda or Anaconda
-
-Use the official installers or your operating system package manager.
-
-### 2. Open the project in a terminal
+### Start
 
 ```bash
-cd /path/to/IAG-Deepfake
-```
-
-### 3. Initialize Conda
-
-Run this once, then close and reopen the terminal:
-
-```bash
-conda init
-```
-
-### 4. Create and activate the conda environment
-
-From the project root:
-
-```bash
-conda create --name facefusion python=3.12 pip=25.0 -y
-conda activate facefusion
-```
-
-### 5. Install FFmpeg inside the conda environment
-
-```bash
-conda install -c conda-forge ffmpeg -y
-```
-
-### 6. Install the web app dependency
-
-```bash
-pip install -r requirements.txt
-```
-
-### 7. Install FaceFusion locally
-
-Clone FaceFusion into this project as a local subdirectory:
-
-```bash
-git clone https://github.com/facefusion/facefusion.git ./facefusion
-cd facefusion
-python install.py --onnxruntime default
-cd ..
-```
-
-This project auto-detects `./facefusion/facefusion.py`, so cloning FaceFusion into the repo root avoids extra configuration.
-
-### 8. Start the app
-
-```bash
-python app.py
+docker compose up --build
 ```
 
 Open:
@@ -80,11 +36,95 @@ Open:
 http://localhost:5050
 ```
 
-## Notes
+### Notes
 
-- Uploaded files and generated files are stored only in temporary job folders during processing.
-- Temporary files are deleted on failure and removed immediately after the final video is downloaded.
-- API endpoint: `POST /swap`.
-- The app expects FaceFusion to be cloned into `./facefusion`.
-- Target videos in `.mov`, `.mkv`, `.avi`, or `.webm` are converted to `.mp4` with `ffmpeg` before FaceFusion runs.
-- Processing runs in the background and the web UI polls job status until the output is ready to download.
+- FaceFusion models are cached in `./facefusion/.assets`
+- Seed-VC checkpoints are cached in `./seed-vc/checkpoints`
+- The compose file currently defaults `SEED_VC_FP16=false` for compatibility. If you are running on supported GPU hardware and want to tune performance, override the environment values in `docker-compose.yml`.
+
+## Local Setup
+
+The most reliable local setup mirrors Docker: use three Python 3.11 virtualenvs so FaceFusion and Seed-VC can keep their own dependency sets.
+
+### 1. Create the app environment
+
+```bash
+python3.11 -m venv .venv-app
+source .venv-app/bin/activate
+pip install --upgrade pip setuptools wheel
+pip install -r requirements.txt
+deactivate
+```
+
+### 2. Create the FaceFusion environment
+
+```bash
+python3.11 -m venv .venv-facefusion
+source .venv-facefusion/bin/activate
+pip install --upgrade pip setuptools wheel
+pip install -r facefusion/requirements.txt
+pip install onnxruntime==1.24.1
+deactivate
+```
+
+### 3. Create the Seed-VC environment
+
+```bash
+python3.11 -m venv .venv-seed-vc
+source .venv-seed-vc/bin/activate
+pip install --upgrade pip setuptools wheel
+pip install -r requirements.txt
+deactivate
+```
+
+### 4. Export the runtime commands
+
+```bash
+export FACEFUSION_BASE_COMMAND="$PWD/.venv-facefusion/bin/python facefusion.py"
+export FACEFUSION_CWD="$PWD/facefusion"
+export SEED_VC_BASE_COMMAND="$PWD/.venv-seed-vc/bin/python inference.py"
+export SEED_VC_CWD="$PWD/seed-vc"
+export SEED_VC_FP16=false
+```
+
+Optional tuning:
+
+```bash
+export SEED_VC_DIFFUSION_STEPS=20
+export SEED_VC_INFERENCE_CFG_RATE=0.7
+export SEED_VC_F0_CONDITION=false
+```
+
+### 5. Start the web app
+
+```bash
+.venv-app/bin/python app.py
+```
+
+Open:
+
+```text
+http://localhost:5050
+```
+
+## Workflow
+
+1. Upload the source face image.
+2. Upload the target video.
+3. Optionally upload a voice reference clip.
+4. Wait for the job to finish.
+5. Download the final MP4.
+
+## Supported Formats
+
+- Source image: `jpg`, `jpeg`, `png`, `webp`
+- Target video: `mp4`, `mov`, `mkv`, `avi`, `webm`
+- Voice reference: `mp3`, `wav`, `m4a`, `aac`, `flac`, `ogg`, `opus`
+
+## Runtime Notes
+
+- Non-MP4 target videos are converted to MP4 before FaceFusion runs.
+- If no voice reference is uploaded, the app skips Seed-VC and keeps the original video audio.
+- If a voice reference is uploaded, the target video must contain an audio track.
+- Processing runs in the background and the UI polls `/status/<job_id>`.
+- Temporary job files are removed on failure and deleted after download.

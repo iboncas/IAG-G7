@@ -13,34 +13,11 @@
     <header class="header">
       <div class="eyebrow">AI · Video Processing</div>
       <h1>Deepfake <span>Video Editor</span></h1>
-      <p class="subtitle">Upload a source face and a target video. Non-MP4 formats are auto-converted before processing and the finished video will be available for download.</p>
+      <p class="subtitle">Upload a target video plus a source face, a voice reference, or both. FaceFusion handles the face swap, Seed-VC can clone the voice, and the finished MP4 is prepared for download.</p>
     </header>
 
     <div class="card">
       <div class="fields">
-
-        <div class="field-group">
-          <label class="field-label" for="source">
-            Source image
-            <span class="tag">required</span>
-          </label>
-          <div class="upload-zone" id="zone-source">
-            <input id="source" name="source" type="file" accept=".jpg,.jpeg,.png,.webp" required>
-            <div class="upload-inner">
-              <div class="upload-icon">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                  <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
-                  <polyline points="21 15 16 10 5 21"/>
-                </svg>
-              </div>
-              <div class="upload-meta">
-                <div class="upload-title">Drop or click to select face image</div>
-                <div class="upload-hint">JPG, JPEG, PNG, WEBP</div>
-                <div class="upload-selected" id="selected-source"></div>
-              </div>
-            </div>
-          </div>
-        </div>
 
         <div class="field-group">
           <label class="field-label" for="target">
@@ -65,12 +42,36 @@
         </div>
 
         <div class="field-group">
+          <label class="field-label" for="source">
+            Source image
+            <span class="tag optional">optional</span>
+          </label>
+          <div class="upload-zone" id="zone-source">
+            <input id="source" name="source" type="file" accept=".jpg,.jpeg,.png,.webp">
+            <div class="upload-inner">
+              <div class="upload-icon">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/>
+                  <polyline points="21 15 16 10 5 21"/>
+                </svg>
+              </div>
+              <div class="upload-meta">
+                <div class="upload-title">Drop or click to select face image</div>
+                <div class="upload-hint">JPG, JPEG, PNG, WEBP</div>
+                <div class="upload-selected" id="selected-source"></div>
+              </div>
+            </div>
+          </div>
+          <button class="field-clear" id="clear-source" type="button" onclick="clearOptionalFile('source', 'selected-source')" hidden>Clear source image</button>
+        </div>
+
+        <div class="field-group">
           <label class="field-label" for="audio">
             Voice reference
-            <span class="tag optional">coming soon</span>
+            <span class="tag optional">optional</span>
           </label>
-          <div class="upload-zone disabled">
-            <input id="audio" name="audio" type="file" accept=".mp3,.wav,.m4a,.aac,.flac,.ogg" disabled>
+          <div class="upload-zone" id="zone-audio">
+            <input id="audio" name="audio" type="file" accept=".mp3,.wav,.m4a,.aac,.flac,.ogg,.opus">
             <div class="upload-inner">
               <div class="upload-icon">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
@@ -80,16 +81,28 @@
                 </svg>
               </div>
               <div class="upload-meta">
-                <div class="upload-title muted">Voice conversion not yet available</div>
-                <div class="upload-hint">MP3, WAV, M4A, AAC, FLAC, OGG</div>
+                <div class="upload-title">Drop or click to select reference voice</div>
+                <div class="upload-hint">MP3, WAV, M4A, AAC, FLAC, OGG, OPUS</div>
+                <div class="upload-selected" id="selected-audio"></div>
               </div>
             </div>
           </div>
+          <button class="field-clear" id="clear-audio" type="button" onclick="clearOptionalFile('audio', 'selected-audio')" hidden>Clear voice reference</button>
+          <p class="field-note">If you add a reference clip, the target video speech is extracted, converted with Seed-VC, and merged back into the final MP4.</p>
         </div>
 
-        <hr class="divider">
+	        <hr class="divider">
 
-        <button id="submit-button" class="btn-submit" type="button" onclick="handleSubmit()">
+	        <div class="field-group">
+	          <label class="field-label" for="output-name">
+	            Output name
+	            <span class="tag optional">optional</span>
+	          </label>
+	          <input id="output-name" class="text-input" name="output_name" type="text" maxlength="80" placeholder="video">
+	          <p class="field-note">The downloaded file will use this name with an MP4 extension.</p>
+	        </div>
+
+	        <button id="submit-button" class="btn-submit" type="button" onclick="handleSubmit()">
           <span class="spinner"></span>
           <span id="btn-text">Process Video</span>
           <svg class="btn-arrow" viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
@@ -120,10 +133,14 @@
           </div>
           <div id="step-facefusion" class="step-item">
             <div class="step-num">3</div>
-            <div class="step-text">Apply video transformation</div>
+            <div class="step-text" id="step-facefusion-text">Apply face swap</div>
+          </div>
+          <div id="step-voice" class="step-item">
+            <div class="step-num">4</div>
+            <div class="step-text" id="step-voice-text">Convert and merge voice if a reference was uploaded</div>
           </div>
           <div id="step-ready" class="step-item">
-            <div class="step-num">4</div>
+            <div class="step-num">5</div>
             <div class="step-text">Download ready</div>
           </div>
         </div>
@@ -138,15 +155,34 @@
   </div>
 
   <script>
+    function syncSelectedFile(inputId, selectedId, clearId = null) {
+      const input = document.getElementById(inputId);
+      const selected = document.getElementById(selectedId);
+      const clearButton = clearId ? document.getElementById(clearId) : null;
+      const hasFile = Boolean(input.files[0]);
+
+      selected.textContent = hasFile ? '✓ ' + input.files[0].name : '';
+      selected.style.display = hasFile ? 'block' : 'none';
+
+      if (clearButton) {
+        clearButton.hidden = !hasFile;
+      }
+    }
+
+    function clearOptionalFile(inputId, selectedId) {
+      const input = document.getElementById(inputId);
+      input.value = '';
+      syncSelectedFile(inputId, selectedId, 'clear-' + inputId);
+    }
+
     document.getElementById('source').addEventListener('change', function () {
-      const el = document.getElementById('selected-source');
-      el.textContent = this.files[0] ? '✓ ' + this.files[0].name : '';
-      el.style.display = this.files[0] ? 'block' : 'none';
+      syncSelectedFile('source', 'selected-source', 'clear-source');
     });
     document.getElementById('target').addEventListener('change', function () {
-      const el = document.getElementById('selected-target');
-      el.textContent = this.files[0] ? '✓ ' + this.files[0].name : '';
-      el.style.display = this.files[0] ? 'block' : 'none';
+      syncSelectedFile('target', 'selected-target');
+    });
+    document.getElementById('audio').addEventListener('change', function () {
+      syncSelectedFile('audio', 'selected-audio', 'clear-audio');
     });
 
     const submitButton = document.getElementById('submit-button');
@@ -162,12 +198,16 @@
     const stepUpload     = document.getElementById('step-upload');
     const stepConvert    = document.getElementById('step-convert');
     const stepFaceFusion = document.getElementById('step-facefusion');
+    const stepVoice      = document.getElementById('step-voice');
     const stepReady      = document.getElementById('step-ready');
+    const stepFaceFusionText = document.getElementById('step-facefusion-text');
+    const stepVoiceText = document.getElementById('step-voice-text');
 
     let pollTimer = null;
+    let activeModes = { face: false, voice: false, mode: null };
 
     function resetSteps() {
-      [stepUpload, stepConvert, stepFaceFusion, stepReady].forEach(n => n.className = 'step-item');
+      [stepUpload, stepConvert, stepFaceFusion, stepVoice, stepReady].forEach(n => n.className = 'step-item');
     }
 
     function setStep(node, state) {
@@ -180,8 +220,31 @@
       btnText.textContent = on ? 'Processing…' : 'Process Video';
     }
 
+    function configureSteps(faceEnabled, voiceEnabled) {
+      const mode = faceEnabled && voiceEnabled ? 'face-and-voice' : faceEnabled ? 'face-only' : 'voice-only';
+      activeModes = { face: faceEnabled, voice: voiceEnabled, mode };
+      stepFaceFusion.style.display = faceEnabled ? '' : 'none';
+      stepVoice.style.display = voiceEnabled ? '' : 'none';
+      [stepUpload, stepConvert, ...(faceEnabled ? [stepFaceFusion] : []), ...(voiceEnabled ? [stepVoice] : []), stepReady]
+        .forEach((step, index) => {
+          step.querySelector('.step-num').textContent = index + 1;
+        });
+      stepFaceFusionText.textContent = 'Apply face swap';
+      stepVoiceText.textContent = faceEnabled
+        ? 'Convert and merge voice'
+        : 'Convert and merge voice into the target video';
+    }
+
     function renderJob(job) {
       const stepText = (job.step || '').toLowerCase();
+      const mode = job.mode || (job.face_enabled && job.voice_enabled ? 'face-and-voice' : job.face_enabled ? 'face-only' : 'voice-only');
+      const faceEnabled = mode === 'face-only' || mode === 'face-and-voice';
+      const voiceEnabled = mode === 'voice-only' || mode === 'face-and-voice';
+
+      if (mode !== activeModes.mode) {
+        configureSteps(faceEnabled, voiceEnabled);
+      }
+
       statusPanel.classList.add('visible');
       statusStep.textContent = job.step || 'Processing';
       statusBadge.textContent = job.state;
@@ -197,14 +260,38 @@
         setStep(stepConvert, job.state === 'failed' ? 'active' : 'done');
       }
 
-      if (stepText.includes('running video transformation') || stepText.includes('video transformation failed')) {
+      if (faceEnabled && (stepText.includes('running face swap') || stepText.includes('face swap failed'))) {
         setStep(stepConvert, 'done');
         setStep(stepFaceFusion, 'active');
       }
 
+      if (voiceEnabled && (stepText.includes('preparing voice conversion') || stepText.includes('extracting source speech') || stepText.includes('preparing voice reference') || stepText.includes('running voice conversion') || stepText.includes('merging converted voice') || stepText.includes('voice conversion'))) {
+        setStep(stepConvert, 'done');
+        if (faceEnabled) {
+          setStep(stepFaceFusion, 'done');
+        }
+        setStep(stepVoice, 'active');
+      }
+
+      if (stepText.includes('finalizing video')) {
+        setStep(stepConvert, 'done');
+        if (faceEnabled) {
+          setStep(stepFaceFusion, 'done');
+        }
+        if (voiceEnabled) {
+          setStep(stepVoice, 'done');
+        }
+        setStep(stepReady, 'active');
+      }
+
       if (job.state === 'completed') {
         setStep(stepConvert, 'done');
-        setStep(stepFaceFusion, 'done');
+        if (faceEnabled) {
+          setStep(stepFaceFusion, 'done');
+        }
+        if (voiceEnabled) {
+          setStep(stepVoice, 'done');
+        }
         setStep(stepReady, 'done');
         downloadLink.href = job.download_url;
         downloadLink.classList.add('visible');
@@ -213,9 +300,15 @@
       }
 
       if (job.state === 'failed') {
-        if (stepText.includes('video transformation')) {
+        if (faceEnabled && stepText.includes('face swap')) {
           setStep(stepConvert, 'done');
           setStep(stepFaceFusion, 'active');
+        } else if (voiceEnabled && (stepText.includes('voice') || stepText.includes('audio'))) {
+          setStep(stepConvert, 'done');
+          if (faceEnabled) {
+            setStep(stepFaceFusion, 'done');
+          }
+          setStep(stepVoice, 'active');
         } else {
           setStep(stepConvert, 'active');
         }
@@ -235,21 +328,37 @@
     }
 
     async function handleSubmit() {
-      const source = document.getElementById('source');
-      const target = document.getElementById('target');
+	      const source = document.getElementById('source');
+	      const target = document.getElementById('target');
+	      const audio = document.getElementById('audio');
+	      const outputName = document.getElementById('output-name');
 
-      if (!source.files[0] || !target.files[0]) {
+      const hasSource = Boolean(source.files[0]);
+      const hasTarget = Boolean(target.files[0]);
+      const hasAudio = Boolean(audio.files[0]);
+
+      if (!hasTarget) {
         statusPanel.classList.add('visible');
         statusStep.textContent = 'Missing files';
         statusBadge.textContent = 'failed';
         statusBadge.className = 'status-badge failed';
-        statusError.textContent = 'Please select both a source face image and a target video.';
+        statusError.textContent = 'Please select a target video.';
+        return;
+      }
+
+      if (!hasSource && !hasAudio) {
+        statusPanel.classList.add('visible');
+        statusStep.textContent = 'Nothing to change';
+        statusBadge.textContent = 'failed';
+        statusBadge.className = 'status-badge failed';
+        statusError.textContent = 'Please select a source face image, a voice reference, or both.';
         return;
       }
 
       clearInterval(pollTimer);
       pollTimer = null;
       setLoading(true);
+      configureSteps(hasSource, hasAudio);
 
       statusPanel.classList.add('visible');
       statusStep.textContent = 'Uploading files';
@@ -264,10 +373,16 @@
 
       try {
         const formData = new FormData();
-        formData.append('source', source.files[0]);
+        if (hasSource) {
+          formData.append('source', source.files[0]);
+        }
         formData.append('target', target.files[0]);
+	        if (hasAudio) {
+	          formData.append('audio', audio.files[0]);
+	        }
+	        formData.append('output_name', outputName.value.trim());
 
-        const response = await fetch('/swap', { method: 'POST', body: formData });
+	        const response = await fetch('/swap', { method: 'POST', body: formData });
         const payload  = await response.json();
         if (!response.ok) throw new Error(payload.error || 'Upload failed.');
 

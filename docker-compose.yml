@@ -1,0 +1,17 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5050:5050"
+    environment:
+      SEED_VC_FP16: "false"
+      SEED_VC_DIFFUSION_STEPS: "20"
+      SEED_VC_INFERENCE_CFG_RATE: "0.7"
+    volumes:
+      - ./app.py:/app/app.py
+      - ./templates:/app/templates
+      - ./static:/app/static
+      - ./facefusion/.assets:/app/facefusion/.assets
+      - ./seed-vc/checkpoints:/app/seed-vc/checkpoints

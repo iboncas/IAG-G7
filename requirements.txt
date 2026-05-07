@@ -1,1 +1,13 @@
 Flask==3.1.0
+torch==2.4.0
+torchaudio==2.4.0
+numpy==1.26.4
+scipy==1.13.1
+librosa==0.10.2
+huggingface-hub>=0.28.1
+munch==4.0.0
+einops==0.8.0
+descript-audio-codec==1.0.0
+transformers==4.46.3
+soundfile==0.12.1
+pyyaml>=6.0
